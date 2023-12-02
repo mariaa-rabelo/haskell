@@ -1,3 +1,4 @@
+import Data.List
 -- PFL 2023/24 - Haskell practical assignment quickstart
 
 -- Part 1
@@ -9,25 +10,46 @@ data Inst =
   deriving Show
 type Code = [Inst]
 
--- createEmptyStack :: Stack
-createEmptyStack = undefined -- TODO, Uncomment the function signature after defining Stack
+--Define a new type to represent the machine’s stack. 
+--The type must be named Stack.
+type Stack = [String] -- int or tt or ff
 
--- stack2Str :: Stack -> String
-stack2Str = undefined -- TODO, Uncomment all the other function type declarations as you implement them
+--Define a new type to represent the machine’s state. 
+--The type must be named State.
+type State = [(String, Integer)]
 
--- createEmptyState :: State
-createEmptyState = undefined -- TODO, Uncomment the function signature after defining State
+createEmptyStack :: Stack
+createEmptyStack =[]
 
--- state2Str :: State -> String
-state2Str = undefined -- TODO
+--after executing the code [push−42, true, false], 
+--the string representing the stack is: False,True,42.
+stack2Str :: Stack -> String
+stack2Str stack = intercalate "," (map show stack)
 
--- run :: (Code, Stack, State) -> (Code, Stack, State)
+createEmptyState :: State
+createEmptyState = []
+
+--after executing the code 
+-- [f alse, push − 3, true, store − var, store −a, store−someVar], 
+--the string representing the state is: a=3,someVar=False,var=True
+state2Str :: State -> String
+state2Str state = intercalate "," [var ++ "=" ++ show val | (var, val) <- sortOn fst state]
+
+
+run :: (Code, Stack, State) -> (Code, Stack, State)
 run = undefined -- TODO
 
 -- To help you test your assembler
 testAssembler :: Code -> (String, String)
 testAssembler code = (stack2Str stack, state2Str state)
   where (_,stack,state) = run(code, createEmptyStack, createEmptyState)
+
+main :: IO ()
+main = do
+  let code = [Push 10, Push 5, Add]  -- Example code
+      (stackStr, stateStr) = testAssembler code
+  putStrLn $ "Stack: " ++ stackStr
+  putStrLn $ "State: " ++ stateStr
 
 -- Examples:
 -- testAssembler [Push 10,Push 4,Push 3,Sub,Mult] == ("-10","")
@@ -55,6 +77,15 @@ compile = undefined -- TODO
 
 -- parse :: String -> Program
 parse = undefined -- TODO
+
+--Hint: define an auxiliary function lexer :: String → [String] 
+-- that splits the string into a list of words (tokens). 
+
+--Example:
+-- lexer ”23 + 4 * 421” = [”23”,”+”,”4”,”*”,”421”]
+-- and from this list of tokens build the corresponding data, 
+--i.e. parse = buildData . lexer
+
 
 -- To help you test your parser
 testParser :: String -> (String, String)
