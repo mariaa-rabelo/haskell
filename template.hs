@@ -13,6 +13,9 @@ type Code = [Inst]
 --Define a new type to represent the machine’s stack. 
 --The type must be named Stack.
 type Stack = [String] -- int or tt or ff
+--type StackValue = Either Integer Bool
+--type Stack = [StackValue]
+
 
 --Define a new type to represent the machine’s state. 
 --The type must be named State.
@@ -37,7 +40,28 @@ state2Str state = intercalate "," [var ++ "=" ++ show val | (var, val) <- sortOn
 
 
 run :: (Code, Stack, State) -> (Code, Stack, State)
-run = undefined -- TODO
+
+run ([], stack, state) = ([], stack, state) -- No more instructions to execute
+run (inst:restCode, stack, state) =
+  case executeInstruction inst stack state of
+    Left errorMessage -> error "Run-time error" 
+    Right (newStack, newState) -> run (restCode, newStack, newState)
+  
+executeInstruction :: Inst -> Stack -> State -> Either String (Stack, State)
+executeInstruction (Push n) stack state = Right (show n : stack, state)
+-- executeInstruction (Fetch var) stack state =
+--   case lookup var state of
+--     Just val -> Right (show val : stack, state)
+--     Nothing -> Left ("Variable not found: " ++ var)
+-- executeInstruction (Store var) (x:rest) state =
+--   case reads x of
+--     [(val, "")] -> Right (rest, (var, val) : state)
+--     _ -> Left "Invalid value on the stack for storage"
+executeInstruction Add stack state =
+  case stack of
+    x:y:rest -> Right ( show ((read y + read x)) : rest, state)
+    _ -> Left "Add: Insufficient operands on the stack"
+executeInstruction _ stack state = Left "Unsupported operation" -- Add similar cases for other instructions
 
 -- To help you test your assembler
 testAssembler :: Code -> (String, String)
@@ -47,6 +71,8 @@ testAssembler code = (stack2Str stack, state2Str state)
 main :: IO ()
 main = do
   let code = [Push 10, Push 5, Add]  -- Example code
+--  let code = [Push 10, Push 5, Push (-3)]  -- Example code with only Push instructions
+
       (stackStr, stateStr) = testAssembler code
   putStrLn $ "Stack: " ++ stackStr
   putStrLn $ "State: " ++ stateStr
@@ -61,6 +87,12 @@ main = do
 -- testAssembler [Push (-20),Push (-21), Le] == ("True","")
 -- testAssembler [Push 5,Store "x",Push 1,Fetch "x",Sub,Store "x"] == ("","x=4")
 -- testAssembler [Push 10,Store "i",Push 1,Store "fact",Loop [Push 1,Fetch "i",Equ,Neg] [Fetch "i",Fetch "fact",Mult,Store "fact",Push 1,Fetch "i",Sub,Store "i"]] == ("","fact=3628800,i=1")
+-- If you test:
+-- testAssembler [Push 1,Push 2,And]
+-- You should get an exception with the string: "Run-time error"
+-- If you test:
+-- testAssembler [Tru,Tru,Store "y", Fetch "x",Tru]
+-- You should get an exception with the string: "Run-time error
 
 -- Part 2
 
