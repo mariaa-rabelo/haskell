@@ -1,4 +1,5 @@
 import Data.List
+--import Stack
 -- PFL 2023/24 - Haskell practical assignment quickstart
 
 -- Part 1
