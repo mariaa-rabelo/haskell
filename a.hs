@@ -1,9 +1,11 @@
 import Data.List
 import qualified Stack as S
+--import Stack (push, pop, top, empty, isEmpty)
 
 -- PFL 2023/24 - Haskell practical assignment quickstart
 
 -- Part 1
+
 -- Do not modify our definition of Inst and Code
 data Inst =
   Push Integer | Add | Mult | Sub | Tru | Fals | Equ | Le | And | Neg | Fetch String | Store String | Noop |
@@ -17,7 +19,9 @@ data StackValue =
   IntVal Integer | 
   BoolVal Bool 
   deriving (Show)
-type Stack = S.Stack StackValue
+type Stack = S.Stack StackValue -- int or tt or ff
+
+
 
 --Define a new type to represent the machine’s state. 
 --The type must be named State.
@@ -45,6 +49,7 @@ state2Str :: State -> String
 state2Str state = intercalate "," [var ++ "=" ++ showStackValue val | (var, val) <- sortOn fst state]
 
 run :: (Code, Stack, State) -> (Code, Stack, State)
+
 run ([], stack, state) = ([], stack, state) -- No more instructions to execute
 run (inst:restCode, stack, state) =
   case executeInstruction inst stack state of
@@ -66,70 +71,28 @@ executeInstruction (Store var) stack state =
               IntVal intValue -> Right (stack', (var, IntVal intValue) : state)
               BoolVal boolVal -> Right (stack', (var, BoolVal boolVal) : state)
         
-executeInstruction Add stack state = performArithmetic (+) stack state
-executeInstruction Mult stack state = performArithmetic (*) stack state
-executeInstruction Sub stack state = performArithmetic (-) stack state
 executeInstruction _ stack state = Left "Unsupported operation" -- Add similar cases for other instructions
-
-
--- executeInstruction Add stack state =
---   case stack of
---     x:y:rest -> Right ( show ((read y + read x)) : rest, state)
---     _ -> Left "Add: Insufficient operands on the stack"
--- executeInstruction _ stack state = Left "Unsupported operation" -- Add similar cases for other instructions
-
--- executeInstruction Mult stack state =
---   case stack of
---     x:y:rest -> Right ( show ((read y * read x)) : rest, state)
---     _ -> Left "Mult: Insufficient operands on the stack"
--- executeInstruction _ stack state = Left "Unsupported operation" -- Add similar cases for other instructions
-
--- Helper function for arithmetic operations
-performArithmetic :: (Int -> Int -> Int) -> Stack -> State -> Either String (Stack, State)
-performArithmetic op stack state =
-  case stack of
-    x:y:rest -> Right (show (x `op` y) : rest, state)
-    _ -> Left $ "Insufficient operands on the stack for " ++ show op
-
--- Execute arithmetic operations using the helper function
---executeInstruction :: Inst -> Stack -> State -> Either String (Stack, State)
-
--- add :: Stack -> Either String Stack
--- add stack =
---     if isEmpty stack || isEmpty (pop stack)
---     then Left "Add: Insufficient operands on the stack"
---     else Right $ push (Right (a + b)) rest
---     where
---         (Right a, tempStack) = (top stack, pop stack)
---         (Right b, rest) = (top tempStack, pop tempStack)
-
 
 -- To help you test your assembler
 testAssembler :: Code -> (String, String)
 testAssembler code = (stack2Str stack, state2Str state)
   where (_,stack,state) = run(code, createEmptyStack, createEmptyState)
 
+
 main :: IO ()
 main = do
-  putStrLn $ "Test Push and Add: " ++ show testPushAndAdd
-  putStrLn $ "Test Fetch and Store: " ++ show testFetchAndStore
+  let (stackStrPush, statePush) = testAssembler [Push 10, Push 20]
+  putStrLn $ "Test Push: " ++ show (stackStrPush == "20,10")
+  putStrLn $ "Stack content: " ++ stackStrPush
+  putStrLn $ "State content: " ++ statePush
 
-testPushAndAdd :: Bool
-testPushAndAdd =
-  let (stackStr, _) = testAssembler [Push 10, Push 20, Add]
-  in stackStr == "30"
+  let (_, stateFetch) = testAssembler [Push 15, Store "x", Fetch "x"]
+  putStrLn $ "Test Fetch: " ++ show (stateFetch == "x=15")
+  putStrLn $ "State content: " ++ stateFetch
 
-testFetchAndStore :: Bool
-testFetchAndStore =
-  let (_, stateStr) = testAssembler [Push 15, Store "x", Fetch "x"]
-  in stateStr == "x=15"
-  
---  let code = [Push 10, Push 5, Add]  -- Example code
---  let code = [Push 10, Push 5, Push (-3)]  -- Example code with only Push instructions
-
-  --     (stackStr, stateStr) = testAssembler code
-  -- putStrLn $ "Stack: " ++ stackStr
-  -- putStrLn $ "State: " ++ stateStr
+  let (_, stateStore) = testAssembler [Push 5, Store "y"]
+  putStrLn $ "Test Store: " ++ show (stateStore == "y=5")
+  putStrLn $ "State content: " ++ stateStore
 
 -- Examples:
 -- testAssembler [Push 10,Push 4,Push 3,Sub,Mult] == ("-10","")

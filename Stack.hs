@@ -1,7 +1,7 @@
 
 module Stack (Stack, -- exportar o tipo
     push, pop, top, -- e as operações
-    empty, isEmpty) where
+    empty, isEmpty, stackToList) where
 
 data Stack a = Stk [a] -- implementação usando listas
 
@@ -22,3 +22,6 @@ empty = Stk []
 isEmpty :: Stack a -> Bool
 isEmpty (Stk [])= True
 isEmpty (Stk _) = False
+
+stackToList :: Stack a -> [a]
+stackToList (Stk xs) = xs
