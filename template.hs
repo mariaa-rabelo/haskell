@@ -66,10 +66,10 @@ executeInstruction (Store var) stack state =
               IntVal intValue -> Right (stack', (var, IntVal intValue) : state)
               BoolVal boolVal -> Right (stack', (var, BoolVal boolVal) : state)
         
-executeInstruction Add stack state = performArithmetic (+) stack state
-executeInstruction Mult stack state = performArithmetic (*) stack state
-executeInstruction Sub stack state = performArithmetic (-) stack state
-executeInstruction _ stack state = Left "Unsupported operation" -- Add similar cases for other instructions
+-- executeInstruction Add stack state = performArithmetic (+) stack state
+-- executeInstruction Mult stack state = performArithmetic (*) stack state
+-- executeInstruction Sub stack state = performArithmetic (-) stack state
+-- executeInstruction _ stack state = Left "Unsupported operation" -- Add similar cases for other instructions
 
 
 -- executeInstruction Add stack state =
@@ -85,11 +85,11 @@ executeInstruction _ stack state = Left "Unsupported operation" -- Add similar c
 -- executeInstruction _ stack state = Left "Unsupported operation" -- Add similar cases for other instructions
 
 -- Helper function for arithmetic operations
-performArithmetic :: (Int -> Int -> Int) -> Stack -> State -> Either String (Stack, State)
-performArithmetic op stack state =
-  case stack of
-    x:y:rest -> Right (show (x `op` y) : rest, state)
-    _ -> Left $ "Insufficient operands on the stack for " ++ show op
+-- performArithmetic :: (Int -> Int -> Int) -> Stack -> State -> Either String (Stack, State)
+-- performArithmetic op stack state =
+--   case stack of
+--     x:y:rest -> Right (show (x `op` y) : rest, state)
+--     _ -> Left $ "Insufficient operands on the stack for " ++ show op
 
 -- Execute arithmetic operations using the helper function
 --executeInstruction :: Inst -> Stack -> State -> Either String (Stack, State)
