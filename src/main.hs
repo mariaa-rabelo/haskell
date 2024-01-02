@@ -110,8 +110,6 @@ testCompile program = show (compile program)
 -- Part 2
 
 -- TODO: Define the types Aexp, Bexp, Stm and Program
-
--- Tipos de Dados para Expressões e Instruções
 data Aexp =
     Const Integer |
     Var String |
@@ -204,14 +202,11 @@ parseTerm tokens =
 parseFactor :: [String] -> (Aexp, [String])
 parseFactor tokens =
     case tokens of
-        "(" : rest ->
-            case parseAexp rest of
-                (aexp, ")":newRest) -> (aexp, newRest)
-                _ -> error "parseFactor erro. close parentheses"
-        t : rest
-            | all isDigit t -> (Const (read t), rest)
-            | otherwise -> (Var t, rest)
-        _ -> error "parseFactor error."
+        "(" : rest -> let (aexp, newRest) = parseAexp rest in case newRest of
+            ")" : rest' -> (aexp, rest')
+            _ -> error "Parse error: Expected closing parenthesis"
+        t : rest -> if all isDigit t then (Const (read t), rest) else (Var t, rest)
+        _ -> error "Parse error: Invalid factor"
 
 
 parseBexp :: [String] -> (Bexp, [String])
@@ -234,11 +229,10 @@ parseNot :: [String] -> (Bexp, [String])
 parseNot tokens =
     case tokens of
         ("not":rest) -> let (bexp, rest') = parseNot rest in (NotExp bexp, rest')
-        rest -> let (bexp, rest') = parseRelation rest in (bexp, rest')
+        _ -> parseRelation tokens
 
 
 parseRelation :: [String] -> (Bexp, [String])
-
 parseRelation ("(" : rest) =
     case parseBexp rest of
         (exp, ")":restTokens2) -> (exp, restTokens2)
@@ -262,33 +256,30 @@ parseStm tokens =
     case tokens of
         ("if":rest) ->
             let (bexp, "then":restThen) = parseBexp rest
-
                 (thenStm, "else":restElse) = if head restThen /= "("
-                                               then parseStm restThen
-                                             else
-                                                let tokens_stms = takeWhile (/=")") (tail restThen)
-                                                    stms = parseStms tokens_stms
-                                                in (Seq stms, tail $ dropWhile (/= ")") restThen)
+                    then parseStm restThen
+                    else
+                        let tokens_stms = takeWhile (/=")") (tail restThen)
+                            stms = parseStms tokens_stms
+                        in (Seq stms, tail $ dropWhile (/= ")") restThen)
 
                 (elseStm, rest'') = if head restElse /= "("
-                                      then parseStm restElse
-                                    else
-                                        let tokens_stms = takeWhile (/=")") (tail restElse)
-                                            stms = parseStms tokens_stms
-                                        in (Seq stms, drop 2 $ dropWhile (/= ")") restElse)
+                    then parseStm restElse
+                    else
+                        let tokens_stms = takeWhile (/=")") (tail restElse)
+                            stms = parseStms tokens_stms
+                        in (Seq stms, drop 2 $ dropWhile (/= ")") restElse)
 
             in (If bexp thenStm elseStm, rest'')
 
         ("while":rest) ->
             let (bexp, "do":restDo) = parseBexp rest
-
-
                 (body, rest') = if head restDo /= "("
-                                      then parseStm restDo
-                                    else
-                                        let tokens_stms = takeWhile (/=")") (tail restDo)
-                                            stms = parseStms tokens_stms
-                                        in (Seq stms, drop 2 $ dropWhile (/= ")") restDo)
+                    then parseStm restDo
+                    else
+                        let tokens_stms = takeWhile (/=")") (tail restDo)
+                            stms = parseStms tokens_stms
+                        in (Seq stms, drop 2 $ dropWhile (/= ")") restDo)
 
             in (While bexp body, rest')
 
@@ -342,18 +333,14 @@ main = do
     print (testAssembler [Push (-20),Push (-21), Le] == ("True",""))
     print (testAssembler [Push 5,Store "x",Push 1,Fetch "x",Sub,Store "x"] == ("","x=4"))
     print (testAssembler [Push 10,Store "i",Push 1,Store "fact",Loop [Push 1,Fetch "i",Equ,Neg] [Fetch "i",Fetch "fact",Mult,Store "fact",Push 1,Fetch "i",Sub,Store "i"]] == ("","fact=3628800,i=1"))
-    -- let (stack, storage) = testAssembler  [Push 1,Push 2,And]
-    -- putStrLn $ stack ++ storage
+
     -- If you test:
     -- testAssembler [Push 1,Push 2,And]
     -- You should get an exception with the string: "Run-time error"
+
     -- If you test:
     -- testAssembler [Tru,Tru,Store "y", Fetch "x",Tru]
     -- You should get an exception with the string: "Run-time error"
-
-    -- Run the program
-    -- let (finalCode, finalStack, finalState) = run (program, initialStack, initialState)
-    -- putStrLn $ "(\"" ++ stackResult ++ "\",\"" ++ stateResult ++ "\")"
 
     -- Testing compA
     putStrLn "Testing compA:"
@@ -370,15 +357,13 @@ main = do
     putStrLn $ "compile [Assign \"x\" (Const 5)] -> " ++ testCompile [Assign "x" (Const 5)]
 
     putStrLn "Testing parser:"
-    -- print $ testParser "x := 5; x := x - 1;" == ("","x=4")
-    -- print $ testParser "x := 0 - 2;" == ("","x=-2")
-    -- print $ testParser "if (not True and 2 <= 5 = 3 == 4) then x :=1; else y := 2;" == ("","y=2")
-    -- print $ testParser "x := 42; if x <= 43 then x := 1; else (x := 33; x := x+1;);" == ("","x=1")
-    -- print $ testParser "x := 42; if x <= 43 then x := 1; else x := 33; x := x+1;" == ("","x=2")
-    -- print $ testParser "x := 42; if x <= 43 then x := 1; else x := 33; x := x+1; z := x+x;" == ("","x=2,z=4")
-    -- print $ testParser "x := 44; if x <= 43 then x := 1; else (x := 33; x := x+1;); y := x*2;" == ("","x=34,y=68")
-    -- print $ testParser "x := 42; if x <= 43 then (x := 33; x := x+1;) else x := 1;" == ("","x=34")
-    -- print $ testParser "if (1 == 0+1 = 2+1 == 3) then x := 1; else x := 2;" == ("","x=1")
-    -- print $ testParser "if (1 == 0+1 = (2+1 == 4)) then x := 1; else x := 2;" == ("","x=2")
-    -- print $ testParser "x := 2; y := (x - 3)(4 + 2*3); z := x +x(2);" == ("","x=2,y=-10,z=6")
-    print $ testParser "i := 10; fact := 1; while (not(i == 1)) do (fact := fact * i; i := i - 1;);" == ("","fact=3628800,i=1")
+    print $ testParser "x := 5; x := x - 1;" == ("","x=4")
+    print $ testParser "x := 0 - 2;" == ("","x=-2")
+    print $ testParser "if (not True and 2 <= 5 = 3 == 4) then x :=1; else y := 2;" == ("","y=2")
+    print $ testParser "x := 42; if x <= 43 then x := 1; else (x := 33; x := x+1;);" == ("","x=1")
+    print $ testParser "x := 42; if x <= 43 then x := 1; else x := 33; x := x+1;" == ("","x=2")
+    print $ testParser "x := 42; if x <= 43 then x := 1; else x := 33; x := x+1; z := x+x;" == ("","x=2,z=4")
+    print $ testParser "x := 44; if x <= 43 then x := 1; else (x := 33; x := x+1;); y := x*2;" == ("","x=34,y=68")
+    print $ testParser "x := 42; if x <= 43 then (x := 33; x := x+1;) else x := 1;" == ("","x=34")
+    print $ testParser "if (1 == 0+1 = 2+1 == 3) then x := 1; else x := 2;" == ("","x=1")
+    print $ testParser "if (1 == 0+1 = (2+1 == 4)) then x := 1; else x := 2;" == ("","x=2")
