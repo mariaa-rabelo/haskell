@@ -3,8 +3,7 @@
 import Data.List (intercalate, sortBy, deleteBy, isPrefixOf)
 import Data.Function (on)
 import Data.Ord (comparing)
-import qualified Text.Parsec as Parsec
-import Text.Parsec.String ( Parser )
+import Debug.Trace (trace, traceShow)
 import Data.Char (isSpace, isDigit, isLower, isAlpha)
 
 
@@ -162,7 +161,7 @@ compile = concatMap compileStm
     compileStm (Assign x a) = compA a ++ [Store x]
     compileStm (Seq stms) = concatMap compileStm stms
     compileStm (If b s1 s2) = compB b ++ [Branch (compileStm s1) (compileStm s2)]
-    compileStm (While b s) = [Loop (compB b ++ [Neg]) (compileStm s)]
+    compileStm (While b s) = [Loop (compB b) (compileStm s)]
 
 -- Lexer Splits a string into tokens
 lexer :: String -> [String]
@@ -210,7 +209,7 @@ parseFactor tokens =
 
 
 parseBexp :: [String] -> (Bexp, [String])
-parseBexp tokens =
+parseBexp tokens = 
     let (term, rest) = parseEq tokens
     in case rest of
         ("and":rest') -> let (aexp, rest'') = parseBexp rest' in (AndExp term aexp, rest'')
@@ -280,7 +279,6 @@ parseStm tokens =
                         let tokens_stms = takeWhile (/=")") (tail restDo)
                             stms = parseStms tokens_stms
                         in (Seq stms, drop 2 $ dropWhile (/= ")") restDo)
-
             in (While bexp body, rest')
 
         (var:":=":rest) ->
@@ -317,7 +315,7 @@ parseStms tokens =
 -- To test the parser
 testParser :: String -> (String, String)
 testParser programCode =
-    let (_, stack, state) = run(compile (parse programCode), createEmptyStack, createEmptyState)
+    let (_, stack, state) = run (compile (parse programCode), createEmptyStack, createEmptyState)
     in (stack2Str stack, state2Str state)
 
 
@@ -355,7 +353,9 @@ main = do
     -- Testing compile
     putStrLn "Testing compile:"
     putStrLn $ "compile [Assign \"x\" (Const 5)] -> " ++ testCompile [Assign "x" (Const 5)]
-
+    putStrLn $ "compile [While TrueConst (Assign \"x\" (Const 5))] -> " ++ testCompile [While TrueConst (Assign "x" (Const 5))]
+    putStrLn $ "compile [While (NotExp (EqExpA (Var \"i\") (Const 1))) (Seq [Assign \"fact\" (MultExp (Var \"fact\") (Var \"i\")), Assign \"i\" (SubExp (Var \"i\") (Const 1))])] -> " ++ testCompile [While (NotExp (EqExpA (Var "i") (Const 1))) (Seq [Assign "fact" (MultExp (Var "fact") (Var "i")), Assign "i" (SubExp (Var "i") (Const 1))])]
+                                                                                                                                                                                                                 --while (not(i == 1)) do (fact := fact * i; i := i - 1;);
     putStrLn "Testing parser:"
     print $ testParser "x := 5; x := x - 1;" == ("","x=4")
     print $ testParser "x := 0 - 2;" == ("","x=-2")
@@ -367,3 +367,7 @@ main = do
     print $ testParser "x := 42; if x <= 43 then (x := 33; x := x+1;) else x := 1;" == ("","x=34")
     print $ testParser "if (1 == 0+1 = 2+1 == 3) then x := 1; else x := 2;" == ("","x=1")
     print $ testParser "if (1 == 0+1 = (2+1 == 4)) then x := 1; else x := 2;" == ("","x=2")
+    print "last tests"
+    print $ testParser "x := 2; y := (x - 3)*(4 + 2*3); z := x +x*(2);" == ("","x=2,y=-10,z=6")
+    print $ testParser "i := 10; fact := 1; while (not(i == 1)) do (fact := fact * i; i := i - 1;);" == ("","fact=3628800,i=1")
+    print $ testParser "i := 10; fact := 1; while (not(i == 1)) do (fact := fact * i; i := i - 1;);"
